@@ -25,7 +25,6 @@ namespace LogMonitor
         private readonly ThreadedBindingList<LogFileEntry> _logEntries = new ThreadedBindingList<LogFileEntry>();
         ThreadedBindingList<WatchFile> _filesWatching = new ThreadedBindingList<WatchFile>();
         
-        
         private Timer _typingStoppedTimer;
 
         private readonly string[] _commandLineArgs;
@@ -41,7 +40,7 @@ namespace LogMonitor
             _commandLineArgs = args;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void MonitorMain_Load(object sender, EventArgs e)
         {
             // Allow new parts to be added, but not removed once committed.        
             _filesWatching = new ThreadedBindingList<WatchFile>();
@@ -49,8 +48,8 @@ namespace LogMonitor
             lstFilesWatching.DisplayMember = "FilePath";
             lstFilesWatching.DataSource = GetFilesWatching();
 
-            dataGridView1.AutoGenerateColumns = true;
-            dataGridView1.DataSource = GetLogFileEntries();
+            dgLogEntries.AutoGenerateColumns = true;
+            dgLogEntries.DataSource = GetLogFileEntries();
 
             _typingStoppedTimer = new Timer {Interval = 500};
             _typingStoppedTimer.Tick += typingStoppedTimer_Tick;
@@ -193,29 +192,6 @@ namespace LogMonitor
 
         #endregion
 
-        private void RefreshListOfFiles()
-        {
-            lstFilesWatching.SafeInvoke(
-                () =>
-                {
-                    lstFilesWatching.DataSource = null;
-                    lstFilesWatching.DisplayMember = "FilePath";
-                    lstFilesWatching.DataSource = GetFilesWatching();
-                    Application.DoEvents();
-                }, false);
-        }
-
-        void UpdateStatus(string text)
-        {
-            statusStrip1.SafeInvoke(
-               () =>
-               {
-                   toolStripStatusLabel1.Text = text;
-                   toolStripStatusLabel1.Invalidate();
-                   Application.DoEvents();
-               }, true);
-        }
-
         void watcher_Changed(object sender, FileSystemEventArgs e)
         {
             Debug.WriteLine(e.FullPath);
@@ -236,7 +212,7 @@ namespace LogMonitor
                     var eventTimeValue = DateTime.Parse(eventTime);
                     var lastLoggedValue = DateTime.Parse(lastLogged.LogDateTime);
                     Debug.WriteLine(eventTimeValue.Subtract(lastLoggedValue).TotalMilliseconds);
-                    //Don't add if we have just added - work around for the method being called twice
+                    //Don't the log change if we have just added - work around for the method being called twice
                     shouldAdd = eventTimeValue.Subtract(lastLoggedValue).TotalMilliseconds > 200;
                 }
             }
@@ -263,6 +239,29 @@ namespace LogMonitor
             }
         }
 
+        private void RefreshListOfFiles()
+        {
+            lstFilesWatching.SafeInvoke(
+                () =>
+                {
+                    lstFilesWatching.DataSource = null;
+                    lstFilesWatching.DisplayMember = "FilePath";
+                    lstFilesWatching.DataSource = GetFilesWatching();
+                    Application.DoEvents();
+                }, false);
+        }
+
+        void UpdateStatus(string text)
+        {
+            statusStrip1.SafeInvoke(
+               () =>
+               {
+                   toolStripStatusLabel1.Text = text;
+                   toolStripStatusLabel1.Invalidate();
+                   Application.DoEvents();
+               }, true);
+        }
+
         private void AddLogEntry(string file, string eventTime, string logText)
         {
             Invoke(new Action<string, string, string>((filePath, txt, t) =>
@@ -273,7 +272,7 @@ namespace LogMonitor
                     LogFileText = txt,
                     LogDateTime = t
                 });
-                dataGridView1.DataSource = GetLogFileEntries();
+                dgLogEntries.DataSource = GetLogFileEntries();
             }), file, logText, eventTime);
         }
 
@@ -336,15 +335,15 @@ namespace LogMonitor
             }
         }
 
-        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        private void dgLogEntries_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-            var row = dataGridView1.Rows[e.RowIndex];
+            var row = dgLogEntries.Rows[e.RowIndex];
             row.Height = row.GetPreferredHeight(e.RowIndex, DataGridViewAutoSizeRowMode.AllCells, true);
         }
 
-        private void dataGridView1_RowHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        private void dgLogEntries_RowHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
         {
-            var row = dataGridView1.Rows[e.RowIndex];
+            var row = dgLogEntries.Rows[e.RowIndex];
             Debug.WriteLine("Row Height:{0} Min Height:{1}", row.Height, row.MinimumHeight);
             row.Height = 22;
         }
@@ -363,7 +362,7 @@ namespace LogMonitor
 
         private void txtSearchLogs_TextChanged(object sender, EventArgs e)
         {
-            dataGridView1.DataSource = GetLogFileEntries();
+            dgLogEntries.DataSource = GetLogFileEntries();
         }
 
         private void btnClearSearch_Click(object sender, EventArgs e)
@@ -372,9 +371,9 @@ namespace LogMonitor
         }
 
 
-        private void dataGridView1_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e)
+        private void dgLogEntries_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
-            var filePath = dataGridView1.Rows[e.RowIndex];
+            var filePath = dgLogEntries.Rows[e.RowIndex];
             var p = (LogFileEntry)filePath.DataBoundItem;
 
             OpenFileInNotepad(p.LogFilePath);
