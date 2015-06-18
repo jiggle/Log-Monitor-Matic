@@ -1,0 +1,17 @@
+C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\bin\Debug\LogMonitor.exe.config
+C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\bin\Debug\LogMonitor.exe
+C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\bin\Debug\LogMonitor.pdb
+C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.Form1.resources
+C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.Properties.Resources.resources
+C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.csproj.GenerateResource.Cache
+C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.exe
+C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.pdb
+C:\SDCard\Dropbox\me\Projects\LogMonitor\bin\Debug\LogMonitor.exe.config
+C:\SDCard\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.exe
+C:\SDCard\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.pdb
+C:\SDCard\Dropbox\me\Projects\LogMonitor\bin\Debug\LogMonitor.exe
+C:\SDCard\Dropbox\me\Projects\LogMonitor\bin\Debug\LogMonitor.pdb
+C:\SDCard\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.csprojResolveAssemblyReference.cache
+C:\SDCard\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.MonitorMain.resources
+C:\SDCard\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.Properties.Resources.resources
+C:\SDCard\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.csproj.GenerateResource.Cache
