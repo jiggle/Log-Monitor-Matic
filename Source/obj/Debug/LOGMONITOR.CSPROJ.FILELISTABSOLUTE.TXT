@@ -15,3 +15,11 @@ C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.Properties.R
 C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.csproj.GenerateResource.Cache
 C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.exe
 C:\Users\jlucas\Dropbox\me\Projects\LogMonitor\obj\Debug\LogMonitor.pdb
+C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\bin\Debug\LogMonitor.exe.config
+C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.exe
+C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.pdb
+C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\bin\Debug\LogMonitor.exe
+C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\bin\Debug\LogMonitor.pdb
+C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.MonitorMain.resources
+C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.Properties.Resources.resources
+C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.csproj.GenerateResource.Cache

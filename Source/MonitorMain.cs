@@ -21,18 +21,19 @@ namespace LogMonitor
 {
     public partial class MonitorMain : Form
     {
-        readonly ThreadedBindingList<FileSystemWatcher> watchers = new ThreadedBindingList<FileSystemWatcher>();
-        private readonly ThreadedBindingList<LogFileEntry> logEntries = new ThreadedBindingList<LogFileEntry>();
+        readonly ThreadedBindingList<FileSystemWatcher> _watchers = new ThreadedBindingList<FileSystemWatcher>();
+        private readonly ThreadedBindingList<LogFileEntry> _logEntries = new ThreadedBindingList<LogFileEntry>();
         ThreadedBindingList<WatchFile> _filesWatching = new ThreadedBindingList<WatchFile>();
-        private  Timer _typingStoppedTimer;
-        private BindingSource _bs;
+        
+        
+        private Timer _typingStoppedTimer;
+
         private readonly string[] _commandLineArgs;
         private bool _isInitializing;
         private bool _stopInitializing;
 
-        private object LockWithThis=new Object();
+        private readonly object _lockWithThis = new Object();
         private string _pathsWatching;
-        private CancellationTokenSource _populateFilesCancellationSource;
 
         public MonitorMain(string[] args)
         {
@@ -51,8 +52,7 @@ namespace LogMonitor
             dataGridView1.AutoGenerateColumns = true;
             dataGridView1.DataSource = GetLogFileEntries();
 
-            _typingStoppedTimer = new Timer();
-            _typingStoppedTimer.Interval = 500;
+            _typingStoppedTimer = new Timer {Interval = 500};
             _typingStoppedTimer.Tick += typingStoppedTimer_Tick;
 
 
@@ -75,6 +75,8 @@ namespace LogMonitor
             InitializeWatchers();
         }
 
+        #region Setup Path Watchers and Populate the files to monitor
+        
         private void InitializeWatchers()
         {
             if (_isInitializing) return;
@@ -83,90 +85,85 @@ namespace LogMonitor
 
         private void PopulateWatchers()
         {
-            lock (LockWithThis)
+            lock (_lockWithThis)
             {
                 _isInitializing = true;
             }
 
             _pathsWatching = txtPathsToWatch.Text;
             var pathsToWatch = txtPathsToWatch.Text.Split(';');
+
             foreach (var path in pathsToWatch.Where(p => !string.IsNullOrEmpty(p)))
             {
-                
                 if (Directory.Exists(path))
                 {
                     PopulateFilesToWatch(path);
 
-                    if (_stopInitializing)
+                    if (_watchers.All(w => w.Path != path))
                     {
-                        lock (LockWithThis)
-                        {
-                            _isInitializing = false;
-                        }
-                        return;
-                    }
-
-                    if (watchers.All(w => w.Path != path))
-                    {
-                        var watcher = new FileSystemWatcher(path)
-                        {
-                            NotifyFilter = NotifyFilters.LastWrite,
-                            Filter = "*.txt"
-                        };
-                        watcher.Changed += watcher_Changed;
-                        watcher.EnableRaisingEvents = true;
-                        watcher.IncludeSubdirectories = true;
-                        watchers.Add(watcher);
+                        AddFileWatcher(path);
                     }
                 }
             }
 
-            var stopWatching = watchers.Where(w => !pathsToWatch.Contains(w.Path)).ToList();
-            foreach (var toStop in stopWatching)
-            {
-                var stopping = toStop;
-                Debug.WriteLine("Stop Watching:{0}", toStop.Path);
-                watchers.Remove(toStop);
-                var stopWatchingFiles = _filesWatching.Where(l => Path.GetDirectoryName(l.FilePath).Contains(stopping.Path)).ToList();
+            StopWatchingFilesNotInPath(pathsToWatch);
 
-                foreach (var watchFile in stopWatchingFiles)
-                {
-                    Invoke(new Action<WatchFile>((file) =>
-                    {
-                        _filesWatching.Remove(file);
-                    }), watchFile);
-                }
-            
-            }
-            lstFilesWatching.SafeInvoke(
-                new Action(() =>
-                {
-                    lstFilesWatching.DataSource = null;
-                    lstFilesWatching.DisplayMember = "FilePath";
-                    lstFilesWatching.DataSource = GetFilesWatching();
-                    Application.DoEvents();
-                }), false);
+            RefreshListOfFiles();
+
             UpdateStatus("");
 
-            lock (LockWithThis)
+            lock (_lockWithThis)
             {
                 _isInitializing = false;
             }
 
         }
+
+        private void AddFileWatcher(string path)
+        {
+            var watcher = new FileSystemWatcher(path)
+            {
+                NotifyFilter = NotifyFilters.LastWrite,
+                Filter = "*.txt"
+            };
+            watcher.Changed += watcher_Changed;
+            watcher.EnableRaisingEvents = true;
+            watcher.IncludeSubdirectories = true;
+            _watchers.Add(watcher);
+        }
+
+        private void StopWatchingFilesNotInPath(string[] pathsToWatch)
+        {
+            var stopWatching = _watchers.Where(w => !pathsToWatch.Contains(w.Path)).ToList();
+            foreach (var toStop in stopWatching)
+            {
+                var stopping = toStop;
+                Debug.WriteLine("Stop Watching:{0}", toStop.Path);
+                _watchers.Remove(toStop);
+                var stopWatchingFiles =
+                    _filesWatching.Where(l => Path.GetDirectoryName(l.FilePath).Contains(stopping.Path)).ToList();
+
+                foreach (var watchFile in stopWatchingFiles)
+                {
+                    Invoke(new Action<WatchFile>((file) => { _filesWatching.Remove(file); }), watchFile);
+                }
+            }
+        }
+
         private void PopulateFilesToWatch(string path)
         {
             UpdateStatus("Registering files to watch..." + path);
 
             var resolvedPath = Environment.ExpandEnvironmentVariables(path);
             var currentWatchedFiles = _filesWatching.ToList();
-            if (Directory.Exists(resolvedPath)) { 
+            if (Directory.Exists(resolvedPath))
+            {
                 var filesToWatch = Directory.GetFiles(resolvedPath, "*.txt", SearchOption.AllDirectories);
                 foreach (var file in filesToWatch.ToList())
                 {
                     if (_stopInitializing)
                     {
-                        lock (LockWithThis)
+                        lock (_lockWithThis)
                         {
                             _isInitializing = false;
                         }
@@ -175,9 +172,10 @@ namespace LogMonitor
 
                     var fileSize = new FileInfo(file).Length;
 
-                    var alreadyWatching = currentWatchedFiles.FirstOrDefault(f => f!=null && f.FilePath == file);
+                    var alreadyWatching = currentWatchedFiles.FirstOrDefault(f => f != null && f.FilePath == file);
 
-                    if (alreadyWatching == null) { 
+                    if (alreadyWatching == null)
+                    {
                         var filetoWatch = new WatchFile()
                         {
                             FilePath = file,
@@ -186,96 +184,100 @@ namespace LogMonitor
 
                         _filesWatching.Add(filetoWatch);
                     }
-                    UpdateStatus(string.Format("Registering files to watch...{0}",file));
-                    
+                    UpdateStatus(string.Format("Registering files to watch...{0}", file));
+
                 }
-                lstFilesWatching.SafeInvoke(
-                       new Action(() =>
-                       {
-                           lstFilesWatching.DataSource = null;
-                           lstFilesWatching.DisplayMember = "FilePath";
-                           lstFilesWatching.DataSource = GetFilesWatching();
-                           Application.DoEvents();
-                       }), false);
+                RefreshListOfFiles();
             }
+        }
+
+        #endregion
+
+        private void RefreshListOfFiles()
+        {
+            lstFilesWatching.SafeInvoke(
+                () =>
+                {
+                    lstFilesWatching.DataSource = null;
+                    lstFilesWatching.DisplayMember = "FilePath";
+                    lstFilesWatching.DataSource = GetFilesWatching();
+                    Application.DoEvents();
+                }, false);
         }
 
         void UpdateStatus(string text)
         {
             statusStrip1.SafeInvoke(
-               new Action(() =>
-                {
-                    toolStripStatusLabel1.Text = text;
-                    toolStripStatusLabel1.Invalidate();
-                    Application.DoEvents();
-                }),true);
+               () =>
+               {
+                   toolStripStatusLabel1.Text = text;
+                   toolStripStatusLabel1.Invalidate();
+                   Application.DoEvents();
+               }, true);
         }
-
 
         void watcher_Changed(object sender, FileSystemEventArgs e)
         {
             Debug.WriteLine(e.FullPath);
             var file = e.FullPath;
-            var eventTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff",
-                                            CultureInfo.InvariantCulture);
+            
+            var eventTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
             var watchFile = _filesWatching.FirstOrDefault(f => f.FilePath.ToLower() == file.ToLower());
 
             if (watchFile == null) return;
 
             var shouldAdd = true;
 
-            if (logEntries.Any())
+            if (_logEntries.Any())
             {
-                var lastLogged = logEntries.OrderByDescending(f => f.LogDateTime).FirstOrDefault(f => f.LogFilePath == file);
+                var lastLogged = _logEntries.OrderByDescending(f => f.LogDateTime).FirstOrDefault(f => f.LogFilePath == file);
                 if (lastLogged != null)
                 {
                     var eventTimeValue = DateTime.Parse(eventTime);
                     var lastLoggedValue = DateTime.Parse(lastLogged.LogDateTime);
                     Debug.WriteLine(eventTimeValue.Subtract(lastLoggedValue).TotalMilliseconds);
+                    //Don't add if we have just added - work around for the method being called twice
                     shouldAdd = eventTimeValue.Subtract(lastLoggedValue).TotalMilliseconds > 200;
                 }
             }
 
             if (!shouldAdd) return;
 
-            using (var fs = new FileStream(file, FileMode.Open,FileAccess.Read, FileShare.ReadWrite))
+            ExtractLatestFileChangesAndAddToLog(file, watchFile, eventTime);
+        }
+
+        private void ExtractLatestFileChangesAndAddToLog(string file, WatchFile watchFile, string eventTime)
+        {
+            using (var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 fs.Seek(watchFile.LastSize, SeekOrigin.Begin);
-                var bytesToRead = (int) (fs.Length - watchFile.LastSize);
-                if (bytesToRead > 0) { 
+                var bytesToRead = (int)(fs.Length - watchFile.LastSize);
+                if (bytesToRead > 0)
+                {
                     var bytes = new byte[bytesToRead];
-                    fs.Read(bytes, 0, bytesToRead); 
+                    fs.Read(bytes, 0, bytesToRead);
                     var logText = System.Text.Encoding.Default.GetString(bytes);
                     watchFile.LastSize = fs.Length;
-                    Invoke(new Action<string, string, string>((filePath, txt, t) =>
-                    {
-                        logEntries.Add(new LogFileEntry()
-                        {
-                            LogFilePath = filePath,
-                            LogFileText = txt,
-                            LogDateTime = t
-                        });
-                        dataGridView1.DataSource = GetLogFileEntries();
-                    }), file, logText, eventTime);
+                    AddLogEntry(file, eventTime, logText);
                 }
             }
         }
 
-        private void txtPathsToWatch_TextChanged(object sender, EventArgs e)
+        private void AddLogEntry(string file, string eventTime, string logText)
         {
-            _typingStoppedTimer.Start();
+            Invoke(new Action<string, string, string>((filePath, txt, t) =>
+            {
+                _logEntries.Add(new LogFileEntry()
+                {
+                    LogFilePath = filePath,
+                    LogFileText = txt,
+                    LogDateTime = t
+                });
+                dataGridView1.DataSource = GetLogFileEntries();
+            }), file, logText, eventTime);
         }
 
-
-        private void dataGridView1_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e)
-        {
-            var filePath = dataGridView1.Rows[e.RowIndex];
-            var p = (LogFileEntry)filePath.DataBoundItem;
-
-            OpenFileInNotepad(p.LogFilePath);
-        }
-
-        private void OpenFileInNotepad(string filePath)
+        private static void OpenFileInNotepad(string filePath)
         {
             var notepad = new Process();
             notepad.StartInfo = new ProcessStartInfo
@@ -286,9 +288,33 @@ namespace LogMonitor
             notepad.Start();
         }
 
+        #region UI
+
+        private void txtPathsToWatch_TextChanged(object sender, EventArgs e)
+        {
+            _typingStoppedTimer.Start();
+        }
+
+        private ThreadedBindingList<WatchFile> GetFilesWatching()
+        {
+            if (string.IsNullOrEmpty(txtSearchFiles.Text)) return _filesWatching;
+
+            var filteredFiles = new ThreadedBindingList<WatchFile>(_filesWatching.Where(f => f.FilePath.ToLower().Contains(txtSearchFiles.Text.ToLower())).ToList());
+            return filteredFiles;
+        }
+
+        private ThreadedBindingList<LogFileEntry> GetLogFileEntries()
+        {
+            if (string.IsNullOrEmpty(txtSearchLogs.Text)) return _logEntries;
+
+            var filteredLogs = new ThreadedBindingList<LogFileEntry>(_logEntries.Where(f => f.LogFileText.ToLower().Contains(txtSearchLogs.Text.ToLower())).ToList());
+            return filteredLogs;
+        }
+
+
         private void btnClear_Click(object sender, EventArgs e)
         {
-            logEntries.Clear();
+            _logEntries.Clear();
         }
 
         private void btnAddFolder_Click(object sender, EventArgs e)
@@ -312,36 +338,20 @@ namespace LogMonitor
 
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-           var row= dataGridView1.Rows[e.RowIndex];
-           row.Height= row.GetPreferredHeight(e.RowIndex, DataGridViewAutoSizeRowMode.AllCells, true);
+            var row = dataGridView1.Rows[e.RowIndex];
+            row.Height = row.GetPreferredHeight(e.RowIndex, DataGridViewAutoSizeRowMode.AllCells, true);
         }
 
         private void dataGridView1_RowHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
         {
             var row = dataGridView1.Rows[e.RowIndex];
-            Debug.WriteLine("Row Height:{0} Min Height:{1}", row.Height,row.MinimumHeight);
+            Debug.WriteLine("Row Height:{0} Min Height:{1}", row.Height, row.MinimumHeight);
             row.Height = 22;
         }
 
         private void txtSearchFiles_TextChanged(object sender, EventArgs e)
         {
             lstFilesWatching.DataSource = GetFilesWatching();
-        }
-
-        private ThreadedBindingList<WatchFile> GetFilesWatching()
-        {
-            if (string.IsNullOrEmpty(txtSearchFiles.Text)) return _filesWatching;
-
-            var filteredFiles = new ThreadedBindingList<WatchFile>(_filesWatching.Where(f => f.FilePath.ToLower().Contains(txtSearchFiles.Text.ToLower())).ToList());
-            return filteredFiles;
-        }
-
-        private ThreadedBindingList<LogFileEntry> GetLogFileEntries()
-        {
-            if (string.IsNullOrEmpty(txtSearchLogs.Text)) return logEntries;
-
-            var filteredLogs = new ThreadedBindingList<LogFileEntry>(logEntries.Where(f => f.LogFileText.ToLower().Contains(txtSearchLogs.Text.ToLower())).ToList());
-            return filteredLogs;
         }
 
         private void lstFilesWatching_DoubleClick(object sender, EventArgs e)
@@ -361,6 +371,16 @@ namespace LogMonitor
             txtSearchLogs.Text = string.Empty;
         }
 
+
+        private void dataGridView1_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            var filePath = dataGridView1.Rows[e.RowIndex];
+            var p = (LogFileEntry)filePath.DataBoundItem;
+
+            OpenFileInNotepad(p.LogFilePath);
+        }
+
+        #endregion
 
     }
 }
