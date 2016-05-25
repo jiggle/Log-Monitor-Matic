@@ -23,3 +23,12 @@ C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\bin\Debug\LogMonito
 C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.MonitorMain.resources
 C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.Properties.Resources.resources
 C:\Users\jlucas\Dropbox\me\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.csproj.GenerateResource.Cache
+D:\Projects\Log-Monitor-Matic\Source\bin\Debug\LogMonitor.exe.config
+D:\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.exe
+D:\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.pdb
+D:\Projects\Log-Monitor-Matic\Source\bin\Debug\LogMonitor.exe
+D:\Projects\Log-Monitor-Matic\Source\bin\Debug\LogMonitor.pdb
+D:\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.MonitorMain.resources
+D:\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.Properties.Resources.resources
+D:\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.csproj.GenerateResource.Cache
+D:\Projects\Log-Monitor-Matic\Source\obj\Debug\LogMonitor.csprojResolveAssemblyReference.cache

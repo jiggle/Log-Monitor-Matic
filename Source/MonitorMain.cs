@@ -63,6 +63,7 @@ namespace LogMonitor
             {
                 //TODO maybe also default to current executing folder and below or have "/" as default in the app config
                 txtPathsToWatch.Text = ConfigurationManager.AppSettings["PathsToMonitor"];
+                txtWildcard.Text = ConfigurationManager.AppSettings["FileWildcard"];
             }
             InitializeWatchers();
         }
@@ -120,15 +121,20 @@ namespace LogMonitor
 
         private void AddFileWatcher(string path)
         {
-            var watcher = new FileSystemWatcher(path)
+            var filters = txtWildcard.Text.Split(';');
+            foreach (var filter in filters)
             {
-                NotifyFilter = NotifyFilters.LastWrite,
-                Filter = "*.txt"
-            };
-            watcher.Changed += watcher_Changed;
-            watcher.EnableRaisingEvents = true;
-            watcher.IncludeSubdirectories = true;
-            _watchers.Add(watcher);
+                var watcher = new FileSystemWatcher(path)
+                {
+                    NotifyFilter = NotifyFilters.LastWrite,
+                    Filter = filter
+                };
+                watcher.Changed += watcher_Changed;
+                watcher.EnableRaisingEvents = true;
+                watcher.IncludeSubdirectories = true;
+                _watchers.Add(watcher);
+            }
+            
         }
 
         private void StopWatchingFilesNotInPath(string[] pathsToWatch)
@@ -157,42 +163,53 @@ namespace LogMonitor
             var currentWatchedFiles = _filesWatching.ToList();
             if (Directory.Exists(resolvedPath))
             {
-                var filesToWatch = Directory.GetFiles(resolvedPath, "*.txt", SearchOption.AllDirectories);
-                foreach (var file in filesToWatch.ToList())
+                var searchPatterns = txtWildcard.Text.Split(';');
+                foreach (var pattern in searchPatterns)
                 {
-                    if (_stopInitializing)
+                    var filesToWatch = FilesToWatch(resolvedPath, pattern);
+                  foreach (var file in filesToWatch.ToList())
                     {
-                        lock (_lockWithThis)
+                        if (_stopInitializing)
                         {
-                            _isInitializing = false;
+                            lock (_lockWithThis)
+                            {
+                                _isInitializing = false;
+                            }
+                            return;
                         }
-                        return;
-                    }
 
-                    var fileSize = new FileInfo(file).Length;
+                        var fileSize = new FileInfo(file).Length;
 
-                    var alreadyWatching = currentWatchedFiles.FirstOrDefault(f => f != null && f.FilePath == file);
+                        var alreadyWatching = currentWatchedFiles.FirstOrDefault(f => f != null && f.FilePath == file);
 
-                    if (alreadyWatching == null)
-                    {
-                        var filetoWatch = new WatchFile()
+                        if (alreadyWatching == null)
                         {
-                            FilePath = file,
-                            LastSize = fileSize
-                        };
+                            var filetoWatch = new WatchFile()
+                            {
+                                FilePath = file,
+                                LastSize = fileSize
+                            };
 
-                        _filesWatching.Add(filetoWatch);
+                            _filesWatching.Add(filetoWatch);
+                        }
+                        UpdateStatus(string.Format("Registering files to watch...{0}", file));
+
                     }
-                    UpdateStatus(string.Format("Registering files to watch...{0}", file));
-
                 }
+
+                
                 RefreshListOfFiles();
             }
         }
 
+        private static string[] FilesToWatch(string resolvedPath, string pattern)
+        {
+            return Directory.GetFiles(resolvedPath, pattern, SearchOption.AllDirectories);
+        }
+
         #endregion
 
-        void watcher_Changed(object sender, FileSystemEventArgs e)
+        private void watcher_Changed(object sender, FileSystemEventArgs e)
         {
             Debug.WriteLine(e.FullPath);
             var file = e.FullPath;
@@ -380,6 +397,8 @@ namespace LogMonitor
         }
 
         #endregion
+
+   
 
     }
 }
